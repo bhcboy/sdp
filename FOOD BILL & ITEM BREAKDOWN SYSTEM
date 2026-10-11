@@ -1,0 +1,200 @@
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:stretchColumns="0">
+
+    <TableRow>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="FOOD BILL SYSTEM"
+            android:textSize="22sp"
+            android:textStyle="bold"/>
+    </TableRow>
+
+    <TableRow>
+        <EditText
+            android:id="@+id/etId"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Bill ID"/>
+    </TableRow>
+
+    <TableRow>
+        <EditText
+            android:id="@+id/etName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Customer Name"/>
+    </TableRow>
+
+    <TableRow>
+        <EditText
+            android:id="@+id/etItems"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Item Details"/>
+    </TableRow>
+
+    <TableRow>
+        <EditText
+            android:id="@+id/etTax"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tax Amount"/>
+    </TableRow>
+
+    <TableRow>
+        <EditText
+            android:id="@+id/etTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Total Bill"/>
+    </TableRow>
+
+    <TableRow>
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SAVE BILL"/>
+    </TableRow>
+
+    <TableRow>
+        <Button
+            android:id="@+id/btnDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DELETE"/>
+    </TableRow>
+
+    <TableRow>
+        <Button
+            android:id="@+id/btnView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="VIEW BILLS"/>
+    </TableRow>
+
+    <TableRow>
+        <TextView
+            android:id="@+id/txtResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Result"/>
+    </TableRow>
+
+</TableLayout>
+
+
+BillDatabaseHelper.java
+package com.example.myapplication;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class BillDatabaseHelper extends SQLiteOpenHelper {
+
+    public BillDatabaseHelper(Context c) {
+        super(c, "Bills.db", null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE Bills (" +
+                "Bill_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Customer_Name TEXT," +
+                "Item_Details TEXT," +
+                "Tax_Amount TEXT," +
+                "Total_Bill TEXT)");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
+        db.execSQL("DROP TABLE IF EXISTS Bills");
+        onCreate(db);
+    }
+
+    public void insert(String[] data) {
+        ContentValues v = new ContentValues();
+        v.put("Customer_Name", data[0]);
+        v.put("Item_Details", data[1]);
+        v.put("Tax_Amount", data[2]);
+        v.put("Total_Bill", data[3]);
+
+        getWritableDatabase().insert("Bills", null, v);
+    }
+
+    public Cursor getAll() {
+        return getReadableDatabase().rawQuery(
+                "SELECT * FROM Bills", null);
+    }
+
+    public void delete(int id) {
+        getWritableDatabase().delete(
+                "Bills", "Bill_ID=?",
+                new String[]{String.valueOf(id)});
+    }
+}
+
+MainActivity.java
+package com.example.myapplication;
+
+import android.os.Bundle;
+import android.database.Cursor;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    EditText id, name, items, tax, total;
+    BillDatabaseHelper db;
+    TextView result;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        setContentView(R.layout.activity_main);
+
+        id = findViewById(R.id.etId);
+        name = findViewById(R.id.etName);
+        items = findViewById(R.id.etItems);
+        tax = findViewById(R.id.etTax);
+        total = findViewById(R.id.etTotal);
+        result = findViewById(R.id.txtResult);
+
+        db = new BillDatabaseHelper(this);
+
+        findViewById(R.id.btnSave).setOnClickListener(v ->
+            db.insert(new String[]{
+                name.getText().toString(),
+                items.getText().toString(),
+                tax.getText().toString(),
+                total.getText().toString()
+            }));
+
+        findViewById(R.id.btnDelete).setOnClickListener(v ->
+            db.delete(Integer.parseInt(id.getText().toString())));
+
+        findViewById(R.id.btnView).setOnClickListener(v -> {
+            Cursor c = db.getAll();
+            String s = "";
+
+            while (c.moveToNext()) {
+                for (int i = 0; i < c.getColumnCount(); i++)
+                    s += c.getColumnName(i) + ": "
+                            + c.getString(i) + "\n";
+                s += "\n";
+            }
+
+            result.setText(s);
+            c.close();
+        });
+    }
+}
