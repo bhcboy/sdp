@@ -1,0 +1,166 @@
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="EVENT TICKET BOOKING SYSTEM"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"/>
+
+    <EditText
+        android:id="@+id/etId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Booking ID"/>
+
+    <EditText
+        android:id="@+id/etEvent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Event Name"/>
+
+    <EditText
+        android:id="@+id/etName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Customer Name"/>
+
+    <EditText
+        android:id="@+id/etQuantity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Ticket Quantity"/>
+
+    <EditText
+        android:id="@+id/etPrice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Total Price"/>
+
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="BOOK TICKET"/>
+
+    <Button
+        android:id="@+id/btnView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VIEW BOOKINGS"/>
+
+    <TextView
+        android:id="@+id/txtResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Result"
+        android:textSize="16sp"/>
+
+</LinearLayout>
+
+BookingDatabaseHelper.java
+package com.example.myapplication;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class BookingDatabaseHelper extends SQLiteOpenHelper {
+
+    public BookingDatabaseHelper(Context c) {
+        super(c, "Bookings.db", null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE Bookings (" +
+                "Booking_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Event_Name TEXT," +
+                "Customer_Name TEXT," +
+                "Ticket_Quantity TEXT," +
+                "Total_Price TEXT)");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
+        db.execSQL("DROP TABLE IF EXISTS Bookings");
+        onCreate(db);
+    }
+
+    public void insert(String[] data) {
+        ContentValues v = new ContentValues();
+        v.put("Event_Name", data[0]);
+        v.put("Customer_Name", data[1]);
+        v.put("Ticket_Quantity", data[2]);
+        v.put("Total_Price", data[3]);
+
+        getWritableDatabase().insert("Bookings", null, v);
+    }
+
+    public Cursor getAll() {
+        return getReadableDatabase().rawQuery(
+                "SELECT * FROM Bookings", null);
+    }
+}
+
+MainActivity.java
+package com.example.myapplication;
+
+import android.os.Bundle;
+import android.database.Cursor;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    EditText id, event, name, quantity, price;
+    BookingDatabaseHelper db;
+    TextView result;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        setContentView(R.layout.activity_main);
+
+        id = findViewById(R.id.etId);
+        event = findViewById(R.id.etEvent);
+        name = findViewById(R.id.etName);
+        quantity = findViewById(R.id.etQuantity);
+        price = findViewById(R.id.etPrice);
+        result = findViewById(R.id.txtResult);
+
+        db = new BookingDatabaseHelper(this);
+
+        findViewById(R.id.btnSave).setOnClickListener(v ->
+            db.insert(new String[]{
+                event.getText().toString(),
+                name.getText().toString(),
+                quantity.getText().toString(),
+                price.getText().toString()
+            }));
+
+        findViewById(R.id.btnView).setOnClickListener(v -> {
+            Cursor c = db.getAll();
+            String s = "";
+
+            while (c.moveToNext()) {
+                for (int i = 0; i < c.getColumnCount(); i++)
+                    s += c.getColumnName(i) + ": "
+                            + c.getString(i) + "\n";
+                s += "\n";
+            }
+
+            result.setText(s);
+            c.close();
+        });
+    }
+}
