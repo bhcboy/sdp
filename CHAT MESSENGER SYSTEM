@@ -1,0 +1,190 @@
+activity_main.xml
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/txtTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="CHAT MESSENGER SYSTEM"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"/>
+
+    <EditText
+        android:id="@+id/etId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtTitle"
+        android:hint="Message ID"/>
+
+    <EditText
+        android:id="@+id/etSender"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etId"
+        android:hint="Sender Name"/>
+
+    <EditText
+        android:id="@+id/etReceiver"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etSender"
+        android:hint="Receiver Name"/>
+
+    <EditText
+        android:id="@+id/etMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etReceiver"
+        android:hint="Message Text"/>
+
+    <EditText
+        android:id="@+id/etTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etMessage"
+        android:hint="Timestamp"/>
+
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/etTime"
+        android:text="SAVE MESSAGE"/>
+
+    <Button
+        android:id="@+id/btnDelete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnSave"
+        android:text="DELETE"/>
+
+    <Button
+        android:id="@+id/btnView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnDelete"
+        android:text="VIEW MESSAGES"/>
+
+    <TextView
+        android:id="@+id/txtResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btnView"
+        android:text="Result"
+        android:textSize="16sp"/>
+
+</RelativeLayout>
+
+MessageDatabaseHelper.java
+package com.example.myapplication;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class MessageDatabaseHelper extends SQLiteOpenHelper {
+
+    public MessageDatabaseHelper(Context c) {
+        super(c, "Messages.db", null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE Messages (" +
+                "Message_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Sender_Name TEXT," +
+                "Receiver_Name TEXT," +
+                "Message_Text TEXT," +
+                "Timestamp TEXT)");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
+        db.execSQL("DROP TABLE IF EXISTS Messages");
+        onCreate(db);
+    }
+
+    public void insert(String[] data) {
+        ContentValues v = new ContentValues();
+        v.put("Sender_Name", data[0]);
+        v.put("Receiver_Name", data[1]);
+        v.put("Message_Text", data[2]);
+        v.put("Timestamp", data[3]);
+
+        getWritableDatabase().insert("Messages", null, v);
+    }
+
+    public Cursor getAll() {
+        return getReadableDatabase().rawQuery(
+                "SELECT * FROM Messages", null);
+    }
+
+    public void delete(int id) {
+        getWritableDatabase().delete(
+                "Messages", "Message_ID=?",
+                new String[]{String.valueOf(id)});
+    }
+}
+
+MainActivity.java
+package com.example.myapplication;
+
+import android.os.Bundle;
+import android.database.Cursor;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    EditText id, sender, receiver, message, time;
+    MessageDatabaseHelper db;
+    TextView result;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        setContentView(R.layout.activity_main);
+
+        id = findViewById(R.id.etId);
+        sender = findViewById(R.id.etSender);
+        receiver = findViewById(R.id.etReceiver);
+        message = findViewById(R.id.etMessage);
+        time = findViewById(R.id.etTime);
+        result = findViewById(R.id.txtResult);
+
+        db = new MessageDatabaseHelper(this);
+
+        findViewById(R.id.btnSave).setOnClickListener(v ->
+            db.insert(new String[]{
+                sender.getText().toString(),
+                receiver.getText().toString(),
+                message.getText().toString(),
+                time.getText().toString()
+            }));
+
+        findViewById(R.id.btnDelete).setOnClickListener(v ->
+            db.delete(Integer.parseInt(id.getText().toString())));
+
+        findViewById(R.id.btnView).setOnClickListener(v -> {
+            Cursor c = db.getAll();
+            String s = "";
+
+            while (c.moveToNext()) {
+                for (int i = 0; i < c.getColumnCount(); i++)
+                    s += c.getColumnName(i) + ": "
+                            + c.getString(i) + "\n";
+                s += "\n";
+            }
+
+            result.setText(s);
+            c.close();
+        });
+    }
+}
