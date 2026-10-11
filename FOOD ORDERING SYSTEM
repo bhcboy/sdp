@@ -1,0 +1,196 @@
+activity_main.xml
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="FOOD ORDERING SYSTEM"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"/>
+
+    <EditText
+        android:id="@+id/etId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Order ID"/>
+
+    <EditText
+        android:id="@+id/etName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Customer Name"/>
+
+    <EditText
+        android:id="@+id/etAddress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Delivery Address"/>
+
+    <EditText
+        android:id="@+id/etItems"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Item List"/>
+
+    <EditText
+        android:id="@+id/etAmount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Payment Amount"/>
+
+    <Button
+        android:id="@+id/btnSave"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SAVE ORDER"/>
+
+    <Button
+        android:id="@+id/btnDelete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="DELETE"/>
+
+
+    <Button
+        android:id="@+id/btnView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VIEW ORDERS"/>
+
+    <TextView
+        android:id="@+id/txtResult"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Result"
+        android:textSize="16sp"/>
+
+</LinearLayout>
+
+
+
+
+
+
+OrderDatabaseHelper.java
+
+
+package com.example.myapplication;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class OrderDatabaseHelper extends SQLiteOpenHelper {
+
+    public OrderDatabaseHelper(Context c) {
+        super(c, "Orders.db", null, 1);
+    }
+
+    @Override
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL("CREATE TABLE Orders (" +
+                "Order_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "Customer_Name TEXT," +
+                "Delivery_Address TEXT," +
+                "Item_List TEXT," +
+                "Payment_Amount TEXT)");
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
+        db.execSQL("DROP TABLE IF EXISTS Orders");
+        onCreate(db);
+    }
+
+    public void insert(String[] data) {
+        ContentValues v = new ContentValues();
+        v.put("Customer_Name", data[0]);
+        v.put("Delivery_Address", data[1]);
+        v.put("Item_List", data[2]);
+        v.put("Payment_Amount", data[3]);
+
+        getWritableDatabase().insert("Orders", null, v);
+    }
+
+    public Cursor getAll() {
+        return getReadableDatabase().rawQuery(
+                "SELECT * FROM Orders", null);
+    }
+
+    public void delete(int id) {
+        getWritableDatabase().delete(
+                "Orders", "Order_ID=?",
+                new String[]{String.valueOf(id)});
+    }
+}
+
+
+
+
+MainActivity.java
+
+
+package com.example.myapplication;
+
+import android.os.Bundle;
+import android.database.Cursor;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+
+    EditText id, name, address, items, amount;
+    OrderDatabaseHelper db;
+    TextView result;
+
+    @Override
+    protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        setContentView(R.layout.activity_main);
+
+        id = findViewById(R.id.etId);
+        name = findViewById(R.id.etName);
+        address = findViewById(R.id.etAddress);
+        items = findViewById(R.id.etItems);
+        amount = findViewById(R.id.etAmount);
+        result = findViewById(R.id.txtResult);
+
+        db = new OrderDatabaseHelper(this);
+
+        findViewById(R.id.btnSave).setOnClickListener(v ->
+            db.insert(new String[]{
+                name.getText().toString(),
+                address.getText().toString(),
+                items.getText().toString(),
+                amount.getText().toString()
+            }));
+
+        findViewById(R.id.btnDelete).setOnClickListener(v ->
+            db.delete(Integer.parseInt(id.getText().toString())));
+
+        findViewById(R.id.btnView).setOnClickListener(v -> {
+            Cursor c = db.getAll();
+            String s = "";
+
+            while (c.moveToNext()) {
+                for (int i = 0; i < c.getColumnCount(); i++)
+                    s += c.getColumnName(i) + ": "
+                            + c.getString(i) + "\n";
+                s += "\n";
+            }
+
+            result.setText(s);
+            c.close();
+        });
+    }
+}
